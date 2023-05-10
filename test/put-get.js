@@ -10,18 +10,18 @@ const Link = require('../')
 const createGrapes = require('bfx-svc-test-helper/grapes')
 
 let grapes
-describe('announce and lookups', () => {
-  before(function (done) {
-    this.timeout(20000)
+describe('put-get', () => {
+  // before(function (done) {
+  //   this.timeout(20000)
 
-    grapes = createGrapes()
-    grapes.start(done)
-  })
+  //   grapes = createGrapes()
+  //   grapes.start(done)
+  // })
 
-  after(function (done) {
-    this.timeout(5000)
-    grapes.stop(done)
-  })
+  // after(function (done) {
+  //   this.timeout(5000)
+  //   grapes.stop(done)
+  // })
 
   it('stores and receives values', (done) => {
     const link = new Link({
@@ -59,7 +59,6 @@ describe('announce and lookups', () => {
 
       link.get(hash, (err, res) => {
         if (err) throw err
-
         assert.strictEqual(res.v, 'hello world')
         assert.strictEqual(typeof res.k, 'string')
         assert.strictEqual(typeof res.sig, 'string')

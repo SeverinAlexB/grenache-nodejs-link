@@ -8,18 +8,18 @@ const Link = require('../')
 const createGrapes = require('bfx-svc-test-helper/grapes')
 
 let grapes
-describe('announce and lookups', () => {
-  before(function (done) {
-    this.timeout(20000)
+describe('announce', () => {
+  // before(function (done) {
+  //   this.timeout(20000)
 
-    grapes = createGrapes()
-    grapes.start(done)
-  })
+  //   grapes = createGrapes()
+  //   grapes.start(done)
+  // })
 
-  after(function (done) {
-    this.timeout(5000)
-    grapes.stop(done)
-  })
+  // after(function (done) {
+  //   this.timeout(5000)
+  //   grapes.stop(done)
+  // })
 
   it('start and stop announcing', (done) => {
     const link = new Link({

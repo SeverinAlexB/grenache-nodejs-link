@@ -5,11 +5,11 @@ const async = require('async')
 const { v4: uuidv4 } = require('uuid')
 const LRU = require('lru')
 const request = require('request')
-const CbQ = require('cbq')
 const bencode = require('bencode')
+const ed = require('ed25519-supercop')
 
 class Link {
-  constructor (conf) {
+  constructor(conf) {
     this.conf = {
       grape: '',
       monitorTimeout: 2000,
@@ -19,47 +19,65 @@ class Link {
     }
 
     _.extend(this.conf, conf)
+    this.init()
   }
 
-  init () {
+  
+  init() {
     this._inited = true
     this.cache = {}
-    this.cbq0 = new CbQ()
     this._reqs = new Map()
     this._announces = new Map()
+
+    _.each(['lookup'], fld => {
+      const cfld = _.upperFirst(fld)
+
+      const opts = {
+        max: this.conf[`lruMaxSize${cfld}`],
+        maxAge: this.conf[`lruMaxAge${cfld}`]
+      }
+
+      this.cache[fld] = new LRU(opts)
+    })
+
+    return this
   }
 
-  post (url, data, opts, cb) {
+  post(url, data, opts, cb) {
     request.post(_.extend({
       url: url,
       json: true,
       body: data
-    }, opts), (err, res, data) => {
+    }, opts), (err, res, resData) => {
+      if (err && err.code === 'ETIMEDOUT') {
+        const err = new Error('ERR_TIMEOUT')
+        err.code = res.statusCode
+        return cb(err)
+      }
       if (res && !/^2..$/.test(res.statusCode)) {
-        const err = new Error(data)
+        const err = new Error(resData)
         err.code = res.statusCode
         return cb(err)
       }
 
-      cb(err, res, data)
+      cb(err, res, resData)
     })
   }
 
-  getRequestHash (type, payload) {
+  getRequestHash(type, payload) {
     return `${type}:${JSON.stringify(payload)}`
   }
 
-  request (type, payload, _opts = {}, cb) {
+  request(type, payload, _opts = {}, cb) {
     async.retry(_opts.retry || 1, next => {
       this._request(type, payload, _opts, next)
     }, cb)
   }
 
-  _request (type, payload, _opts, cb) {
+  _request(type, payload, _opts, cb) {
     const opts = _.defaults(_opts, {
       timeout: this.conf.requestTimeout
     })
-
     const cache = this.cache[type]
 
     if (cache) {
@@ -75,15 +93,6 @@ class Link {
     const req = this.newRequest(type, payload, opts, cb)
     this.addRequest(req)
 
-    this.cbq0.push(req.qhash, (err, data) => {
-      this.handleReply(req.rid, err, data)
-    })
-
-    const kcnt = this.cbq0.cnt(req.qhash)
-    if (kcnt > 1) {
-      return
-    }
-
     this.post(
       `${this.conf.grape}/${type}`,
       { rid: req.rid, data: req.payload },
@@ -91,34 +100,29 @@ class Link {
         timeout: opts.timeout
       },
       (err, rep, msg) => {
-        this.handleReply(req.rid, err, msg, true)
+        this.handleReply(req.rid, err, msg)
       }
     )
   }
 
-  handleReply (rid, err, data, fromGrape = false) {
+  handleReply(rid, err, data) {
     const req = this._reqs.get(rid)
     if (!req) {
       return
     }
 
-    if (fromGrape) {
-      if (!err && data) {
-        let cache = this.cache[req.type]
-        if (cache) {
-          cache.set(req.qhash, data)
-        }
+    if (!err && data) {
+      let cache = this.cache[req.type]
+      if (cache) {
+        cache.set(req.qhash, data)
       }
-
-      this.cbq0.trigger(req.qhash, err, data)
-      return
     }
 
     this.delRequest(req)
     req.cb(err, data)
   }
 
-  newRequest (type, payload, opts, cb) {
+  newRequest(type, payload, opts, cb) {
     const rid = uuidv4()
 
     const req = {
@@ -126,7 +130,7 @@ class Link {
       type: type,
       payload: payload,
       opts: opts,
-      cb: _.isFunction(cb) ? cb : () => {},
+      cb: _.isFunction(cb) ? cb : () => { },
       _ts: Date.now()
     }
 
@@ -135,19 +139,19 @@ class Link {
     return req
   }
 
-  addRequest (req) {
+  addRequest(req) {
     this._reqs.set(req.rid, req)
   }
 
-  delRequest (req) {
+  delRequest(req) {
     this._reqs.delete(req.rid)
   }
 
-  getRequest (rid) {
+  getRequest(rid) {
     return this._reqs.get(rid)
   }
 
-  lookup (key, _opts = {}, cb) {
+  lookup(key, _opts = {}, cb) {
     if (typeof _opts === 'function') return this.lookup(key, {}, _opts)
 
     const opts = _.defaults({}, _opts, {
@@ -168,7 +172,7 @@ class Link {
     })
   }
 
-  startAnnouncing (key, port, opts = {}, cb) {
+  startAnnouncing(key, port, opts = {}, cb) {
     if (typeof opts === 'function') return this.startAnnouncing(key, port, undefined, opts)
     const id = port + ':' + key
     if (this._announces.has(id)) return false
@@ -188,7 +192,7 @@ class Link {
     this._announces.set(id, info)
   }
 
-  stopAnnouncing (key, port) {
+  stopAnnouncing(key, port) {
     const id = port + ':' + key
     const info = this._announces.get(id)
     if (!info) return false
@@ -198,11 +202,11 @@ class Link {
     clearTimeout(info.timeout)
   }
 
-  announce (key, port, _opts = {}, cb) {
+  announce(key, port, _opts = {}, cb) {
     if (typeof _opts === 'function') return this.announce(key, port, undefined, _opts)
 
     if (!cb) {
-      cb = () => {}
+      cb = () => { }
     }
 
     const opts = _.defaults({}, _opts, {
@@ -212,13 +216,12 @@ class Link {
     this.request('announce', [key, port], opts, cb)
   }
 
-  put (opts, cb) {
+  put(opts, cb) {
     if (!opts || !cb) throw new Error('ERR_MISSING_ARGS')
-
     this.request('put', opts, {}, cb)
   }
 
-  putMutable (data, opts, cb) {
+  putMutable(data, opts, cb) {
     if (!data || !opts || !cb) throw new Error('ERR_MISSING_ARGS')
     if (!data.seq) return cb(new Error('ERR_MISSING_SEQ'))
 
@@ -239,50 +242,20 @@ class Link {
     data.sig = ed
       .sign(encoded, publicKey, secretKey)
       .toString('hex')
-
     this.put(data, cb)
   }
 
-  get (hash, cb) {
+  get(hash, cb) {
     this.request('get', hash, {}, cb)
   }
 
-  monitor () {
-    const now = Date.now()
+  /**
+   * @deprecated No need to call start() anymore. GrapeClient will start automatically.
+   * Calling this method now will do nothing. It's just here for backwards compatibility.
+   */
+  start() {}
 
-    this._reqs.forEach(req => {
-      if (now > req._ts + req.opts.timeout) {
-        this.handleReply(req.rid, new Error('ERR_TIMEOUT'), null, true)
-      }
-    })
-
-    return this
-  }
-
-  start () {
-    if (!this._inited) {
-      this.init()
-    }
-
-    this._monitorItv = setInterval(this.monitor.bind(this), this.conf.monitorTimeout)
-
-    _.each(['lookup'], fld => {
-      const cfld = _.upperFirst(fld)
-
-      const opts = {
-        max: this.conf[`lruMaxSize${cfld}`],
-        maxAge: this.conf[`lruMaxAge${cfld}`]
-      }
-
-      this.cache[fld] = new LRU(opts)
-    })
-
-    return this
-  }
-
-  stop () {
-    clearInterval(this._monitorItv)
-
+  stop() {
     _.each(this.cache, c => {
       c.clear()
     })

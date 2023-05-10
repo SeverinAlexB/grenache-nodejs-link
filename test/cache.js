@@ -8,18 +8,18 @@ const assert = require('assert')
 const createGrapes = require('bfx-svc-test-helper/grapes')
 
 let grapes
-describe('announce and lookups', () => {
-  before(function (done) {
-    this.timeout(20000)
+describe('cache', () => {
+  // before(function (done) {
+  //   this.timeout(20000)
 
-    grapes = createGrapes()
-    grapes.start(done)
-  })
+  //   grapes = createGrapes()
+  //   grapes.start(done)
+  // })
 
-  after(function (done) {
-    this.timeout(5000)
-    grapes.stop(done)
-  })
+  // after(function (done) {
+  //   this.timeout(5000)
+  //   grapes.stop(done)
+  // })
 
   it('caches lookups', (done) => {
     const link = new Link({
