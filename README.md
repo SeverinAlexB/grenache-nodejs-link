@@ -31,13 +31,11 @@ grape --dp 20002 --aph 40001 --bn '127.0.0.1:20001'
         in the cache
     - `lruMaxAgeLookup` &lt;Number&gt; Maximum cache age in ms.
 
-#### link.start()
-
-Sets up the link.
+**link.start()** is deprecated.
 
 #### link.stop()
 
-Stops all current requests and announces.
+Stops all current announces. Doesn't need to be called if no announce has been made.
 
 #### link.announce(name)
 

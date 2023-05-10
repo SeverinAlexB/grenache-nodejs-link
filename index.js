@@ -253,7 +253,9 @@ class Link {
    * @deprecated No need to call start() anymore. GrapeClient will start automatically.
    * Calling this method now will do nothing. It's just here for backwards compatibility.
    */
-  start() {}
+  start() {
+    console.warn('start() is deprecated. GrapeClient will start automatically.')
+  }
 
   stop() {
     _.each(this.cache, c => {
