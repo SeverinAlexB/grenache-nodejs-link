@@ -1,8 +1,19 @@
-# grenache-nodejs-link
+# grenache-nodejs-link-simple
 
 <img src="logo.png" width="15%" />
 
 In Grenache, `grenache-nodejs-link` communicates with the DHT.
+
+## Changes compared to regular link
+
+This repo takes the original [grenache-nodejs-link](https://github.com/bitfinexcom/grenache-nodejs-link) and 
+
+- removes the need to run `start()`.
+- Removes the need to run `stop()` in case no announcements have been made.
+
+This simplified the api because lookups can now be done directly without any setup/shutdown methods.
+
+
 
 ### Requirements
 
