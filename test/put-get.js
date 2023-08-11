@@ -3,7 +3,7 @@
 'use strict'
 
 const assert = require('assert')
-const ed = require('ed25519-supercop')
+
 
 const Link = require('../')
 

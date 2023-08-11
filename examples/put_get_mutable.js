@@ -1,6 +1,6 @@
 'use strict'
 
-const ed = require('ed25519-supercop')
+
 const Link = require('../')
 
 const data = {

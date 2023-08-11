@@ -2,7 +2,7 @@
 
 const Link = require('../')
 
-const ed = require('ed25519-supercop')
+
 const bencode = require('bencode')
 
 const { publicKey, secretKey } = ed.createKeyPair(ed.createSeed())
