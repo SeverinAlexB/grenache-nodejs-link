@@ -2,7 +2,7 @@
 
 <img src="logo.png" width="15%" />
 
-In Grenache, `grenache-nodejs-link` communicates with the DHT.
+In Grenache, `grenache-nodejs-link-simple` communicates with the DHT.
 
 ## Changes compared to regular link
 
@@ -13,6 +13,10 @@ This repo takes the original [grenache-nodejs-link](https://github.com/bitfinexc
 
 This simplified the api because lookups can now be done directly without any setup/shutdown methods.
 
+Install with:
+```
+npm i grenache-nodejs-link-simple
+```
 
 
 ### Requirements
